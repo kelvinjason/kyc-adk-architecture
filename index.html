@@ -4,119 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Google ADK 开户审查（KYC）系统 — 架构设计</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
   <style>
     :root {
-      --bg: #fafaf9;
-      --bg-alt: #f5f5f4;
-      --text: #1c1917;
-      --text-muted: #78716c;
-      --accent: #2563eb;
-      --accent-light: #dbeafe;
-      --border: #e7e5e4;
-      --code-bg: #f5f5f4;
-      --red: #dc2626;
-      --yellow: #d97706;
-      --green: #16a34a;
-      --purple: #7c3aed;
-      --cyan: #0891b2;
+      --r-main-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      --r-heading-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      --r-code-font: "SF Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+      --r-link-color: #2563eb;
+      --r-background-color: #fafaf9;
+      --r-heading-color: #1c1917;
+      --r-main-color: #1c1917;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.75;
-      font-size: 16px;
-    }
-    .container { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem; }
-    header { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
-    h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 0.5rem; }
-    .subtitle { color: var(--text-muted); font-size: 1.1rem; }
-    h2 {
-      font-size: 1.35rem; font-weight: 600; margin: 2.5rem 0 1rem;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: #44403c; }
-    p { margin-bottom: 0.75rem; color: #44403c; }
-    .lead { font-size: 1.1rem; color: #57534e; margin-bottom: 1.5rem; }
-    .diagram {
-      background: var(--bg-alt);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem 1.5rem;
-      margin: 1.25rem 0;
-      overflow-x: auto;
-    }
-    .diagram pre {
-      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Monaco, Consolas, monospace;
-      font-size: 0.82rem;
-      line-height: 1.6;
-      white-space: pre;
-    }
-    code {
-      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Monaco, Consolas, monospace;
-      background: var(--code-bg);
-      padding: 0.1em 0.35em;
-      border-radius: 4px;
-      font-size: 0.875em;
-      color: #c2410c;
-    }
-    .diagram code { background: none; padding: 0; color: inherit; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 1rem 0;
-      font-size: 0.9rem;
-    }
-    th {
-      text-align: left;
-      padding: 0.6rem 0.85rem;
-      background: var(--bg-alt);
-      border: 1px solid var(--border);
-      font-weight: 600;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--text-muted);
-    }
-    td {
-      padding: 0.6rem 0.85rem;
-      border: 1px solid var(--border);
-      vertical-align: top;
-    }
-    td:first-child { font-weight: 500; }
-    ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
-    li { margin-bottom: 0.35rem; color: #44403c; }
-    .tag {
-      display: inline-block;
-      padding: 0.15em 0.55em;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      font-family: monospace;
-    }
+    .reveal { font-size: 28px; }
+    .reveal .slides { text-align: left; }
+    .reveal h1 { font-size: 1.7em; letter-spacing: -0.02em; margin-bottom: 0.3em; }
+    .reveal h2 { font-size: 1.2em; color: #2563eb; margin-top: 0.5em; margin-bottom: 0.3em; text-transform: none; font-weight: 600; letter-spacing: 0; }
+    .reveal h3 { font-size: 1em; color: #57534e; margin-top: 0.5em; font-weight: 600; text-transform: none; }
+    .reveal p, .reveal li { font-size: 0.85em; line-height: 1.6; color: #44403c; }
+    .reveal ul { margin-left: 0.5em; }
+    .reveal li { margin-bottom: 0.3em; }
+    .reveal .subtitle { color: #78716c; font-size: 0.75em; margin-bottom: 1.5em; }
+    .reveal pre { font-size: 0.65em; line-height: 1.5; box-shadow: none; border: 1px solid #e7e5e4; border-radius: 6px; padding: 0.8em 1em; background: #f5f5f4; }
+    .reveal code { font-family: var(--r-code-font); background: #f5f5f4; padding: 0.1em 0.3em; border-radius: 4px; font-size: 0.85em; color: #c2410c; }
+    .reveal pre code { background: none; padding: 0; color: #1c1917; font-size: 1em; }
+    .reveal table { font-size: 0.7em; width: 100%; border-collapse: collapse; margin: 0.5em 0; }
+    .reveal table th { background: #f5f5f4; padding: 0.45em 0.7em; text-align: left; border: 1px solid #e7e5e4; font-weight: 600; text-transform: none; letter-spacing: 0; font-size: 0.9em; color: #78716c; }
+    .reveal table td { padding: 0.4em 0.7em; border: 1px solid #e7e5e4; vertical-align: top; }
+    .reveal table td:first-child { font-weight: 500; }
+    .tag { display: inline-block; padding: 0.15em 0.5em; border-radius: 4px; font-size: 0.75em; font-weight: 700; font-family: monospace; }
     .tag-red { background: #fee2e2; color: #b91c1c; }
     .tag-yellow { background: #fef3c7; color: #92400e; }
     .tag-green { background: #dcfce7; color: #15803d; }
-    .tag-blue { background: var(--accent-light); color: #1d4ed8; }
+    .tag-blue { background: #dbeafe; color: #1d4ed8; }
     .tag-purple { background: #ede9fe; color: #6d28d9; }
     .tag-cyan { background: #cffafe; color: #0e7490; }
-    .callout {
-      background: #fffbeb;
-      border-left: 4px solid #f59e0b;
-      padding: 1rem 1.25rem;
-      border-radius: 0 6px 6px 0;
-      margin: 1.25rem 0;
-    }
-    .callout p { margin: 0; color: #78350f; }
-    .section-badge {
-      font-size: 0.7rem;
-      padding: 0.2em 0.6em;
-      border-radius: 99px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+    .callout { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 0.6em 0.9em; border-radius: 0 6px 6px 0; margin: 0.5em 0; }
+    .callout p { margin: 0; color: #78350f; font-size: 0.8em; }
+    .badge { display: inline-block; padding: 0.2em 0.55em; border-radius: 99px; font-size: 0.65em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.4em; vertical-align: middle; }
     .badge-philosophy { background: #ede9fe; color: #6d28d9; }
     .badge-pipeline { background: #dbeafe; color: #1d4ed8; }
     .badge-parallel { background: #cffafe; color: #0e7490; }
@@ -124,89 +49,136 @@
     .badge-callback { background: #fef3c7; color: #92400e; }
     .badge-state { background: #dcfce7; color: #15803d; }
     .badge-decision { background: #fee2e2; color: #b91c1c; }
-    footer {
-      margin-top: 4rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 0.875rem;
-    }
-    .emoji { font-size: 1.1em; }
-    .delta-table td:nth-child(3) { color: #44403c; }
+    .footer-tag { font-size: 0.6em; padding: 0.3em 0.7em; border-radius: 99px; font-weight: 700; vertical-align: middle; display: inline-block; }
+    .two-col { display: flex; gap: 1.5em; align-items: flex-start; }
+    .two-col > div { flex: 1; }
+    .reveal .slide-number { color: #78716c; font-size: 14px; }
+    .highlight-box { background: #f5f5f4; border-radius: 8px; padding: 0.8em 1em; margin: 0.5em 0; border: 1px solid #e7e5e4; }
+    .emoji { font-size: 1.15em; }
+    strong { color: #1c1917; }
   </style>
 </head>
 <body>
-<div class="container">
+<div class="reveal">
 
-<header>
+<!-- SLIDE 1: Title -->
+<div class="slides">
+<section>
   <h1>Google ADK 开户审查（KYC）系统</h1>
   <p class="subtitle">完整架构思路 · Architecture Design</p>
-</header>
+  <div class="highlight-box">
+    <p style="margin:0; font-size: 0.8em; color: #44403c;"><strong>"流水线 + 并行 + 护栏"</strong> 三层思维设计</p>
+  </div>
+  <p style="font-size: 0.7em; color: #78716c; margin-top: 1.5em;">用 Reveal.js 演示 · 按 → 或空格翻页</p>
+</section>
 
-<p class="lead">整个系统用 <strong>"流水线 + 并行 + 护栏"</strong> 三层思维设计：流水线保证阶段顺序，并行保证审查效率，护栏保证合规安全。ADK 的价值在于这三件事都有原生支持，不需要自己造轮子。</p>
+<!-- SLIDE 2: Philosophy -->
+<section>
+  <h2><span class="badge badge-philosophy">核心理念</span>三层层级各司其职</h2>
+  <ul>
+    <li><strong>流水线（SequentialAgent）</strong><br>保证阶段顺序，决策依赖审查，审查依赖入件</li>
+    <li><strong>并行（ParallelAgent）</strong><br>五路审查同时执行，效率提升约 80%</li>
+    <li><strong>护栏（Callbacks）</strong><br>合规拦截、审计追溯、数据安全，横切不侵入</li>
+  </ul>
+  <div class="callout">
+    <p>ADK 的价值：这三件事都有原生支持，不需要自己造轮子。</p>
+  </div>
+</section>
 
-<h2><span class="section-badge badge-philosophy">一</span>&ensp;主流水线（SequentialAgent）</h2>
-<p>三个阶段串行，前序未完成不进入后序：</p>
-<div class="diagram"><pre>Stage 1: 入件登记
-         ↓
-Stage 1.5: 补件循环（按需）
-         ↓
+<!-- SLIDE 3: Main Pipeline -->
+<section>
+  <h2><span class="badge badge-pipeline">一</span>主流水线（SequentialAgent）</h2>
+  <pre>Stage 1: 入件登记
+          ↓
+Stage 1.5: 补件循环（按需激活，最多 3 轮）
+          ↓
 Stage 2: 五路并行审查
-         ↓
-Stage 3: 综合决策</pre></div>
-<p>串行的原因：决策依赖审查结果，审查依赖入件数据，顺序不能乱。</p>
+          ↓
+Stage 3: 综合决策</pre>
+  <p style="font-size:0.75em; color:#78716c; margin-top:0.5em;">三个阶段串行，前序未完成不进入后序 — 顺序不能乱。</p>
+</section>
 
-<h2><span class="section-badge badge-parallel">二</span>&ensp;五路并行审查（ParallelAgent）</h2>
-<p>五个维度同时执行，互不阻塞：</p>
-<table>
-  <thead>
-    <tr><th>审查维度</th><th>核心关注点</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><span class="tag tag-blue">🪪 身份核验</span></td><td>证件真伪、活体检测、人脸比对</td></tr>
-    <tr><td><span class="tag tag-purple">🛡️ 合规筛查</span></td><td>制裁名单、PEP 政治敏感人物、AML 风险评分</td></tr>
-    <tr><td><span class="tag tag-green">💳 信用财务</span></td><td>信用报告、财富来源核实</td></tr>
-    <tr><td><span class="tag tag-cyan">🌍 地理位置</span></td><td>FATF 风险国籍/IP 来源矛盾、居住地址一致性</td></tr>
-    <tr><td><span class="tag tag-yellow">📰 负面新闻</span></td><td>Google 搜索欺诈舆情、裁判文书/失信被执行人</td></tr>
-  </tbody>
-</table>
-<p>并行的价值：五路审查从串行 5×T 压缩到并行 max(T)，效率提升约 80%。</p>
+<!-- SLIDE 4: Five Parallel Tracks -->
+<section>
+  <h2><span class="badge badge-parallel">二</span>五路并行审查（ParallelAgent）</h2>
+  <div class="two-col">
+    <div>
+      <table>
+        <tr><td><span class="tag tag-blue">🪪 身份核验</span></td><td>证件真伪、活体检测、人脸比对</td></tr>
+        <tr><td><span class="tag tag-purple">🛡️ 合规筛查</span></td><td>制裁名单、PEP、AML 风险评分</td></tr>
+        <tr><td><span class="tag tag-green">💳 信用财务</span></td><td>信用报告、财富来源核实</td></tr>
+        <tr><td><span class="tag tag-cyan">🌍 地理位置</span></td><td>FATF 风险国籍、IP/地址矛盾</td></tr>
+        <tr><td><span class="tag tag-yellow">📰 负面新闻</span></td><td>欺诈舆情、裁判文书、失信被执行人</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>并行效率</h3>
+      <div class="highlight-box">
+        <p style="margin:0; font-size: 0.85em;">串行：<strong>5×T</strong><br>并行：<strong>max(T)</strong><br><span style="color:#16a34a; font-weight:700;">提升约 80% 效率</span></p>
+      </div>
+    </div>
+  </div>
+</section>
 
-<h2><span class="section-badge badge-loop">三</span>&ensp;三个特殊节点</h2>
+<!-- SLIDE 5: Node A Loop -->
+<section>
+  <h2><span class="badge badge-loop">节点 A</span>补件循环（LoopAgent）</h2>
+  <pre>发现缺件 → 通知客户补件 → 校验材料质量 → 达标则退出循环</pre>
+  <div class="callout">
+    <p>解决的问题：传统流程需要人工跟进补件，LoopAgent 让这个过程完全自动化。</p>
+  </div>
+  <p>最多循环 <strong>3 次</strong>，仍未达标则终止本次审查。</p>
+</section>
 
-<h3>节点 A：补件循环（LoopAgent）</h3>
-<p>入件阶段发现材料不完整时激活，最多循环 3 次：</p>
-<div class="diagram"><pre>发现缺件 → 通知客户补件 → 校验材料质量 → 达标则退出循环</pre></div>
-<p>解决的问题：传统流程需要人工跟进补件，LoopAgent 让这个过程完全自动化。</p>
+<!-- SLIDE 6: Node B Artifacts -->
+<section>
+  <h2><span class="badge badge-loop">节点 B</span>证件文件管理（Artifacts）</h2>
+  <div class="two-col">
+    <div>
+      <h3>两类数据存储</h3>
+      <ul>
+        <li><strong>Session State</strong><br><code>JSON 结构文本</code><br>审查结论、中间结果</li>
+        <li><strong>Artifacts</strong><br><code>二进制文件</code><br>证件图片、PDF 报告</li>
+      </ul>
+    </div>
+    <div>
+      <h3>两套作用域</h3>
+      <ul>
+        <li><strong>Session 级</strong><br>证件图片，审查完可清理</li>
+        <li><strong>User 级（<code>user:</code> 前缀）</strong><br>最终 PDF 合规报告<br>永久保留，合规存档</li>
+      </ul>
+    </div>
+  </div>
+</section>
 
-<h3>节点 B：证件文件管理（Artifacts）</h3>
-<p>区分两类数据存储：</p>
-<ul>
-  <li><strong>Session State</strong> → 只存文本型审查结论（JSON 结构）</li>
-  <li><strong>Artifacts</strong> → 专门存二进制文件（证件图片、PDF 报告）</li>
-</ul>
-<p>两套作用域：</p>
-<ul>
-  <li><strong>Session 级 Artifact：</strong>证件图片，审查完可清理</li>
-  <li><strong>User 级 Artifact（<code>user:</code> 前缀）：</strong>最终 PDF 合规报告，永久保留，合规存档</li>
-</ul>
+<!-- SLIDE 7: Node C HITL -->
+<section>
+  <h2><span class="badge badge-loop">节点 C</span>人工复核门控（Human-in-the-loop）</h2>
+  <pre>风险 HIGH/CRITICAL
+    → 推送工单到合规团队
+    → 等待人工审批
+    → 录入结果
+    → 恢复执行
 
-<h3>节点 C：人工复核门控（Human-in-the-loop）</h3>
-<p>高风险案件在 decision_agent 执行前自动暂停：</p>
-<div class="diagram"><pre>风险 HIGH/CRITICAL → 推送工单到合规团队 → 等待人工审批 → 录入结果 → 恢复执行
-低风险案件直接穿透，不阻塞。</pre></div>
+低风险案件直接穿透，不阻塞</pre>
+</section>
 
-<h2><span class="section-badge badge-callback">四</span>&ensp;合规护栏层（Callbacks）</h2>
-<p>贯穿所有 Agent 的横切关注点，不侵入业务逻辑：</p>
-<div class="diagram"><pre>每个 Agent 执行前   → 黑名单快速拦截（命中直接 REJECT，不调 LLM）
-每次调 LLM 前       → PII 脱敏（身份证号/手机号替换为掩码）
-每次调工具前        → 人工审批门控（高风险暂停）
-每个 Agent 完成后   → 写审计日志（谁做了什么决定，时间戳）</pre></div>
-<div class="callout"><p><strong>Callbacks 的核心价值：</strong>监管要求的审计追溯、数据安全、合规拦截，全部在护栏层统一处理，业务 Agent 保持干净。</p></div>
+<!-- SLIDE 8: Callbacks -->
+<section>
+  <h2><span class="badge badge-callback">四</span>合规护栏层（Callbacks）</h2>
+  <pre><strong>before_agent</strong>  → 黑名单快速拦截（命中直接 REJECT，不调 LLM）
+<strong>before_model</strong>  → PII 脱敏（身份证号/手机号替换为掩码）
+<strong>before_tool</strong>   → 人工审批门控（高风险暂停）
+<strong>after_agent</strong>   → 写审计日志（谁做了什么决定，时间戳）</pre>
+  <div class="callout">
+    <p>监管要求的审计追溯、数据安全、合规拦截，全部在护栏层统一处理，<strong>业务 Agent 保持干净</strong>。</p>
+  </div>
+</section>
 
-<h2><span class="section-badge badge-state">五</span>&ensp;数据流设计（Session State 分层）</h2>
-<p>四个作用域各司其职，避免数据泄漏和重复加载：</p>
-<div class="diagram"><pre><strong>app 级</strong>（全应用共享）
+<!-- SLIDE 9: State Layers -->
+<section>
+  <h2><span class="badge badge-state">五</span>数据流设计（Session State 分层）</h2>
+  <pre><strong>app 级</strong>（全应用共享）
  └── FATF 黑名单列表、全局风险国家库
      → 所有案件共用，定时更新一次即可
 
@@ -220,59 +192,50 @@ Stage 3: 综合决策</pre></div>
 
 <strong>temp 级</strong>（单轮临时）
  └── Agent 内部推理中间变量
-     → 不跨轮次，自动丢弃</pre></div>
+     → 不跨轮次，自动丢弃</pre>
+</section>
 
-<h2><span class="section-badge badge-decision">六</span>&ensp;决策规则（五维度综合评分）</h2>
-<div class="diagram"><pre><span class="tag tag-red">🔴 REJECT</span>    任意维度命中制裁/黑名单/重大欺诈   （Callback 层可提前拦截）
-<span class="tag tag-red">🔴 REJECT</span>    在失信/裁判文书/刑事记录命中
-<span class="tag tag-yellow">🟡 MANUAL_REVIEW</span>    风险分 ≥ 75 或 2+ 维度复核      （触发人工门控）
-<span class="tag tag-yellow">🟡 EDD</span>         1 个维度需强化尽调（EDD）
+<!-- SLIDE 10: Decision Rules -->
+<section>
+  <h2><span class="badge badge-decision">六</span>决策规则（五维度综合评分）</h2>
+  <pre><span class="tag tag-red">🔴 REJECT</span>       任意维度命中制裁/黑名单/重大欺诈（Callback 层提前拦截）
+<span class="tag tag-red">🔴 REJECT</span>       在失信/裁判文书/刑事记录命中
+<span class="tag tag-yellow">🟡 MANUAL_REVIEW</span>    风险分 ≥ 75 或 2+ 维度复核（触发人工门控）
+<span class="tag tag-yellow">🟡 EDD</span>            1 个维度需强化尽调（Enhanced Due Diligence）
 <span class="tag tag-yellow">🟡 CONDITIONAL_APPROVE</span>  1 个维度需关注，其余通过
-<span class="tag tag-green">✅ APPROVE</span>    全部五维度通过</pre></div>
+<span class="tag tag-green">✅ APPROVE</span>      全部五维度通过</pre>
+</section>
 
-<h2><span class="section-badge badge-philosophy">七</span>&ensp;完整架构全景图</h2>
-<div class="diagram"><pre>┌──────────────────────────────────────────────────────┐
+<!-- SLIDE 11: Full Architecture -->
+<section>
+  <h2><span class="badge badge-philosophy">七</span>完整架构全景图</h2>
+  <pre style="font-size:0.52em; line-height:1.45;">┌──────────────────────────────────────────────────────┐
 │  基础设施层                                           │
-│  会话持久化: DatabaseSessionService (PostgreSQL)      │
-│  文件存储: GcsArtifactService (Google Cloud)          │
+│  会话持久化: DatabaseSessionService (PostgreSQL)    │
+│  文件存储: GcsArtifactService (Google Cloud)         │
 └──────────────────────┬───────────────────────────────┘
                        │
 ┌──────────────────────▼───────────────────────────────┐
-│  合规护栏层（Callbacks，贯穿所有 Agent）              │
-│  before_agent   → 黑名单拦截                          │
-│  before_model   → PII 脱敏                           │
-│  before_tool    → 人工审批门控                       │
-│  after_agent    → 审计日志                           │
+│  合规护栏层（Callbacks，贯穿所有 Agent）             │
+│  before_agent → 黑名单拦截  before_model → PII 脱敏  │
+│  before_tool → 人工门控   after_agent  → 审计日志   │
 └──────────────────────┬───────────────────────────────┘
                        │
 ┌──────────────────────▼───────────────────────────────┐
-│  主流水线（SequentialAgent）                          │
-│                                                      │
-│  Stage 1: 入件登记                                   │
-│  → 生成案件ID，校验完整性，保存证件图片（Artifact）   │
-│                                                      │
-│  Stage 1.5: 补件循环（LoopAgent，按需激活）           │
-│  → 最多 3 轮：通知补件 → 校验质量 → 达标退出         │
-│                                                      │
-│  Stage 2: 五路并行审查（ParallelAgent）              │
-│  ├── 身份核验（证件OCR读取Artifact）                 │
-│  ├── 合规筛查（读取 app级 全局黑名单）               │
-│  ├── 信用财务（读取 user级 历史风险画像）            │
-│  ├── 地理位置（FATF + IP矛盾检测）                   │
-│  └── 负面新闻（ADK内置 google_search）               │
-│                                                      │
-│  Stage 3: 综合决策                                    │
-│  → 高风险暂停等待人工（Human-in-the-loop）           │
-│  → 输出最终报告，持久化 PDF Artifact（user级）        │
-│  → 更新客户风险画像到 user级 State                   │
-└─────────────────────────────────────────────────────┘</pre></div>
+│  主流水线（SequentialAgent）                         │
+│  Stage 1: 入件登记 → 生成案件ID，保存证件 Artifact   │
+│  Stage 1.5: 补件循环（LoopAgent，按需最多 3 轮）     │
+│  Stage 2: 五路并行审查（ParallelAgent）               │
+│    身份核验 / 合规筛查 / 信用财务 / 地理位置 / 负面新闻│
+│  Stage 3: 综合决策 → 高风险暂停，低风险直接穿透       │
+│           输出 PDF 合规报告，更新客户风险画像          │
+└─────────────────────────────────────────────────────┘</pre>
+</section>
 
-<h2><span class="section-badge badge-parallel">八</span>&ensp;每项 ADK 特性的必要性</h2>
-<table class="delta-table">
-  <thead>
-    <tr><th>ADK 特性</th><th>如果不用会怎样</th></tr>
-  </thead>
-  <tbody>
+<!-- SLIDE 12: ADK Features -->
+<section>
+  <h2><span class="badge badge-parallel">八</span>每项 ADK 特性的必要性</h2>
+  <table>
     <tr><td><code>SequentialAgent</code></td><td>决策 Agent 可能在审查未完成时就运行</td></tr>
     <tr><td><code>ParallelAgent</code></td><td>五路审查串行执行，等待时间线性叠加</td></tr>
     <tr><td><code>LoopAgent</code></td><td>补件逻辑需要外部系统驱动，流程断裂</td></tr>
@@ -281,13 +244,32 @@ Stage 3: 综合决策</pre></div>
     <tr><td><code>State 分层</code></td><td>历史风险画像每次重查，或数据在不该共享的 Agent 间泄漏</td></tr>
     <tr><td><code>DatabaseSessionService</code></td><td>系统重启后所有进行中的审查丢失</td></tr>
     <tr><td>内置 <code>google_search</code></td><td>需自建搜索代理，维护成本高</td></tr>
-  </tbody>
-</table>
+  </table>
+</section>
 
-<footer>
-  <p>本文档为纯架构设计思路，不包含实现代码。</p>
-</footer>
+<!-- SLIDE 13: Closing -->
+<section>
+  <h1>总结</h1>
+  <div class="highlight-box">
+    <p style="margin:0; font-size:0.85em;">八项 ADK 特性合在一起，构成一个<strong>生产级合规、可审计、可扩展</strong>的开户审查系统。</p>
+  </div>
+  <p style="margin-top:1em; font-size:0.75em; color:#78716c;">如需开始写代码实现，可从任意一个 Stage 或 Agent 入手。</p>
+</section>
 
 </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    backgroundTransition: 'fade',
+    center: false,
+    width: 1280,
+    height: 720,
+  });
+</script>
 </body>
 </html>
